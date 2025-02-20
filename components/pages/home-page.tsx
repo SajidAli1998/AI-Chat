@@ -1,89 +1,178 @@
-'use client';
-import React, { useState, useRef } from 'react';
-import { Button } from '../ui/button';
-import { ModeToggle } from '../elements/toggle-mode';
-import { simulateLLMStreaming } from '@/lib/generator';
-import { CircleSlash, RotateCcw } from 'lucide-react';
-import { Input } from '../ui/input';
-import { ModelOptions } from '../elements/model-options';
-import Markdown from "react-markdown";
-import remarkGfm from 'remark-gfm'
-import { useLLMStore } from '@/store/llm-store';
-import { simulatedResponse } from '@/helper/helper';
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import { ModeToggle } from "../elements/toggle-mode";
+import axios from "axios";
+import { useLLMStore } from "@/store/llm-store";
+import { HeaderButton } from "../elements/header-buttom";
+import MessageForm from "../elements/chat-form";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+
 export default function HomePage() {
-  
-  const [result, setResult] = useState<string>('');
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const streamingOptions = useRef<{ stop: boolean }>({ stop: false });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const model = useLLMStore().selectedModel
+  const {
+    selectedModel,
+    userId,
+    messages,
+    setMessages,
+    addMessage,
+    updateMessages,
+  } = useLLMStore();
+  const { toast } = useToast();
+
+  const isChatEnabled = selectedModel === "Open AI";
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await axios.get("/api");
+        setMessages(response.data);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch messages",
+          variant: "destructive",
+        });
+        console.error("Failed to fetch messages:", error);
+      }
+    };
+
+    fetchMessages();
+  }, [setMessages, toast]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   const handleSendMessage = async () => {
     setLoading(true);
-    setResult(''); 
-    streamingOptions.current.stop = false; 
+    streamingOptions.current.stop = false;
 
+    const userMessage = {
+      userId: parseInt(userId),
+      message: input,
+      sender: "USER",
+    };
 
-    for await (const chunk of simulateLLMStreaming(simulatedResponse, { delayMs: 200, chunkSize: 12, stop: streamingOptions.current.stop })) {
-      if (streamingOptions.current.stop) break;
-      setResult((prev) => prev + chunk);
+    addMessage(userMessage);
+    setInput("");
+
+    try {
+      const response = await axios.post("/api", userMessage);
+      const [savedUserMessage, savedAiMessage] = response.data;
+
+      updateMessages([savedUserMessage]);
+
+      addMessage(savedAiMessage);
+
+      toast({
+        title: "Message Sent",
+        description: "Your message has been sent successfully",
+      });
+
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+      console.error("Failed to save message:", error);
     }
 
     setLoading(false);
   };
 
-  const handleStop = () => {
-    streamingOptions.current.stop = true;
-    setLoading(false);
-  };
+  const handleStarMessage = async (chatId: number, starred: boolean) => {
+    try {
+      const response = await axios.patch("/api", { chatId, starred });
+      const { updatedChat, adjacentMessage } = response.data;
 
+      const messagesToUpdate = [updatedChat];
+      if (adjacentMessage) {
+        messagesToUpdate.push(adjacentMessage);
+      }
+      updateMessages(messagesToUpdate);
+
+      toast({
+        title: starred ? "Message Starred" : "Message Unstarred",
+        description: starred
+          ? "The message has been starred successfully"
+          : "The message has been unstarred successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update message",
+        variant: "destructive",
+      });
+      console.error("Failed to update chat:", error);
+    }
+  };
 
   return (
     <div className="max-w-7xl relative mx-auto h-[100dvh] flex flex-col justify-center items-center space-y-12">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center space-x-4">
+        <HeaderButton text="Starred Messages" href="/starred" />
         <ModeToggle />
       </div>
 
-      <h1 className="font-bold text-2xl">{model.length ? model : 'Chat with me'}</h1>
+      <h1 className="font-bold text-2xl">
+        {selectedModel.length ? selectedModel : "Chat with me"}
+      </h1>
 
       <div className="relative max-w-xl w-full p-4 border rounded-md flex flex-col h-96 overflow-y-auto">
-        <div className="flex flex-row justify-between items-start">
-          <div className='w-4/5'>
-            <Markdown className='prose dark:prose-invert prose-h1:text-xl prose-sm' remarkPlugins={[remarkGfm]}>{result || 'No response yet.'}</Markdown>
-          </div>
-          <div className='1/5 sticky top-0 right-0 flex gap-2'>
-
-            {loading && <Button
-              onClick={handleStop}
-              variant="outline" size="icon">
-              <CircleSlash />
-            </Button>}
-
-            <Button
-              disabled={loading || !result.length}
-              onClick={() => {
-                setResult('');
-              }} variant="outline" size="icon">
-              <RotateCcw />
-            </Button>
-
-          </div>
+        <div className="flex flex-col space-y-4">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${
+                message.sender === "USER" ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div
+                className={`p-2 rounded-md ${
+                  message.sender === "USER"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-300 text-black"
+                }`}
+              >
+                <div className="text-xs text-black text-opacity-75">
+                  {message.createdAt &&
+                    format(new Date(message.createdAt), "p, MMM d, yyyy")}
+                </div>
+                {message.message}
+                <button
+                  onClick={() =>
+                    message.id !== undefined &&
+                    handleStarMessage(message.id, !message.starred)
+                  }
+                  className="ml-2"
+                >
+                  {message.starred ? "⭐" : "☆"}
+                </button>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      <div className="max-w-xl w-full fixed bottom-5">
-        <form onSubmit={(e) => { e.preventDefault(); handleSendMessage() }} className="flex flex-row w-full items-end gap-2">
-          <ModelOptions />
-          <Input
-            placeholder="Type your message here."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <Button type='submit' disabled={loading || !input.length}>
-            {loading ? 'Sending...' : 'Send message'}
-          </Button>
-        </form>
-      </div>
+      <MessageForm
+        input={input}
+        setInput={setInput}
+        loading={loading}
+        isChatEnabled={isChatEnabled}
+        handleSendMessage={handleSendMessage}
+      />
     </div>
   );
 }

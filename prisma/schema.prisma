@@ -1,8 +1,39 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  chats     Chat[]
+  starred   StarredPrompt[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+model Chat {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  sender    Sender
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  starred   Boolean  @default(false)
+}
+
+model StarredPrompt {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  prompt    String
+  response  String
+  llm       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Sender {
+  USER
+  AI
+}
 
 generator client {
   provider = "prisma-client-js"
