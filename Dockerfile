@@ -19,7 +19,6 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
@@ -38,6 +37,9 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+# Install @prisma/client
+RUN npm install @prisma/client
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -55,6 +57,15 @@ COPY --from=builder /app/public ./public
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy the prisma directory
+COPY --from=builder /app/prisma ./prisma
+
+# Copy node_modules to include @prisma/client
+COPY --from=builder /app/node_modules ./node_modules
+
+# Change ownership of node_modules to nextjs user
+RUN chown -R nextjs:nodejs /app/node_modules
 
 USER nextjs
 

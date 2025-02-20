@@ -1,0 +1,3 @@
+CREATE USER myuser WITH PASSWORD 'mypassword';
+CREATE DATABASE mydatabase;
+GRANT ALL PRIVILEGES ON DATABASE mydatabase TO myuser;
