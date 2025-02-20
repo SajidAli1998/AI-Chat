@@ -55,9 +55,11 @@ export default function HomePage() {
     streamingOptions.current.stop = false;
 
     const userMessage = {
+      id: messages.length + 1,
       userId: parseInt(userId),
       message: input,
       sender: "USER",
+      createdAt: new Date().toISOString(),
     };
 
     addMessage(userMessage);
