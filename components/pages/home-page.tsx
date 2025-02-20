@@ -50,27 +50,31 @@ export default function HomePage() {
     }
   }, [messages]);
 
+  // ...existing code...
+
   const handleSendMessage = async () => {
     setLoading(true);
     streamingOptions.current.stop = false;
 
     const userMessage = {
-      id: messages.length + 1,
       userId: parseInt(userId),
       message: input,
       sender: "USER",
       createdAt: new Date().toISOString(),
+      starred: false,
     };
 
-    addMessage(userMessage);
     setInput("");
+    addMessage(userMessage); // Optimistically add the user's message
 
     try {
       const response = await axios.post("/api", userMessage);
       const [savedUserMessage, savedAiMessage] = response.data;
 
+      // Update the user's message with the actual message from the server
       updateMessages([savedUserMessage]);
 
+      // Add the AI's response message
       addMessage(savedAiMessage);
 
       toast({
@@ -92,6 +96,8 @@ export default function HomePage() {
 
     setLoading(false);
   };
+
+  // ...existing code...
 
   const handleStarMessage = async (chatId: number, starred: boolean) => {
     try {

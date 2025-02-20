@@ -3,7 +3,6 @@ model User {
   email     String   @unique
   name      String?
   chats     Chat[]
-  starred   StarredPrompt[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -17,17 +16,6 @@ model Chat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   starred   Boolean  @default(false)
-}
-
-model StarredPrompt {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  prompt    String
-  response  String
-  llm       String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 enum Sender {
