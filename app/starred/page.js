@@ -42,29 +42,33 @@ export default function Page() {
         </div>
       </div>
       <div className="relative max-w-xl w-full p-4 border rounded-md flex flex-col h-96 overflow-y-auto">
-        <ul className="space-y-4">
-          {groupedMessages.map(({ userMessage, aiMessage }) => (
-            <li
-              key={userMessage.id}
-              className="p-2 rounded-md bg-gray-300 text-black"
-            >
-              <div className="p-2 rounded-md bg-green-500 text-white mb-2">
-                <div className="text-xs text-black text-opacity-75">
-                  {userMessage.createdAt &&
-                    format(new Date(userMessage.createdAt), "p, MMM d, yyyy")}
+        {groupedMessages.length === 0 ? (
+          <div className="text-center text-gray-500">No starred messages</div>
+        ) : (
+          <ul className="space-y-4">
+            {groupedMessages.map(({ userMessage, aiMessage }) => (
+              <li
+                key={userMessage.id}
+                className="p-2 rounded-md bg-gray-300 text-black"
+              >
+                <div className="p-2 rounded-md bg-green-500 text-white mb-2">
+                  <div className="text-xs text-black text-opacity-75">
+                    {userMessage.createdAt &&
+                      format(new Date(userMessage.createdAt), "p, MMM d, yyyy")}
+                  </div>
+                  User: {userMessage.message}
                 </div>
-                User: {userMessage.message}
-              </div>
-              <div className="p-2 rounded-md bg-gray-300 text-black">
-                <div className="text-xs text-black text-opacity-75">
-                  {aiMessage.createdAt &&
-                    format(new Date(aiMessage.createdAt), "p, MMM d, yyyy")}
+                <div className="p-2 rounded-md bg-gray-300 text-black">
+                  <div className="text-xs text-black text-opacity-75">
+                    {aiMessage.createdAt &&
+                      format(new Date(aiMessage.createdAt), "p, MMM d, yyyy")}
+                  </div>
+                  AI: {aiMessage.message}
                 </div>
-                AI: {aiMessage.message}
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

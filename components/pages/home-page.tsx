@@ -48,7 +48,7 @@ export default function HomePage() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages.length]);
 
   const handleSendMessage = async () => {
     setLoading(true);
@@ -77,10 +77,6 @@ export default function HomePage() {
         title: "Message Sent",
         description: "Your message has been sent successfully",
       });
-
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }
     } catch (error) {
       toast({
         title: "Error",
